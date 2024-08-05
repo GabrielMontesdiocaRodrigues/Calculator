@@ -1,8 +1,7 @@
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout
-from display import Display
-from info import Info
+from components import Display, Info, ButtonsGrid
 
 
 class MainWindow(QMainWindow):
@@ -15,8 +14,10 @@ class MainWindow(QMainWindow):
         self.cWidget.setLayout(self.mLayout)
 
         # Creating Window
-        self.mLayout.addWidget(Info('2.0 ^ 10.0 = 1024'))
-        self.mLayout.addWidget(Display())
+        self.mLayout.addWidget(Info(''))
+        display = Display()
+        self.mLayout.addWidget(display)
+        self.mLayout.addLayout(ButtonsGrid(display))
 
         self.setWindowTitle("Calculator")
         self.setCentralWidget(self.cWidget)
