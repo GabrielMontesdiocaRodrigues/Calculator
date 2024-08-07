@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QLabel, QWidget, QLineEdit, QPushButton, QGridLayout
 from PySide6.QtCore import Qt, Slot
 
-from utils import isNumOrDot, isEmpty
+from utils import isNumOrDot, isEmpty, isValidNumber
 from variables import SMALL_FONT_SIZE, TEXT_MARGIN, MINIMUN_WIDTH, BIG_FONT_SIZE, MEDIUM_FONT_SIZE
 
 
@@ -45,7 +45,7 @@ class Button(QPushButton):
 
 class ButtonsGrid(QGridLayout):
 
-    def __init__(self, display: Display, parent: QWidget | None = None) -> None:
+    def __init__(self, display: Display, info: Info, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._grid_mask = [
             ['C', '◀', '^', '/'],
@@ -56,28 +56,86 @@ class ButtonsGrid(QGridLayout):
         ]
 
         self.display = display
+        self.info = info
+
+        self._equation = ''
+        self._left = None
+        self._right = None
+        self._operator = None
 
         self.make_grid()
+
+    @property
+    def equation(self):
+        return self._equation
+
+    @equation.setter
+    def equation(self, newEquation):
+        self._equation = newEquation
+        self.info.setText(newEquation)
 
     def make_grid(self):
         for i, row in enumerate(self._grid_mask):
             for j, buttonText in enumerate(row):
+
                 button = Button(buttonText)
                 if not isNumOrDot(buttonText) and not isEmpty(buttonText):
                     button.setProperty('cssClass', 'specialButton')
+                    self._configSpecialButton(button)
+
                 self.addWidget(button, i, j)
 
-                button.clicked.connect(
-                    self._makeButtonDisplaySlot(
-                        self._insertButtonTextToDisplay, button
-                    )
-                )
+                slot = self._makeSlot(self._insertButtonTextToDisplay, button)
+                self._connectButtonClicked(button, slot)
 
-    def _makeButtonDisplaySlot(self, function, button):
-        @Slot()
+    def _connectButtonClicked(self, button: Button, slot: Slot):
+        button.clicked.connect(slot)
+
+    def _configSpecialButton(self, button: Button):
+
+        buttonText = button.text()
+        if buttonText == 'C':
+            self._connectButtonClicked(button, self._clear)
+
+        if buttonText in '+-/*':
+            slot = self._makeSlot(self._operatorClicked, button)
+            self._connectButtonClicked(button, slot)
+
+    def _makeSlot(self, function, button):
+        @ Slot()
         def realSlot():
             function(button)
         return realSlot
 
     def _insertButtonTextToDisplay(self, button: Button):
-        self.display.insert(button.text())
+        buttonText = button.text()
+        newDisplayValue = self.display.text() + buttonText
+        if not isValidNumber(newDisplayValue):
+            return
+        self.display.insert(buttonText)
+
+    def _clear(self):
+        self.display.clear()
+        self.equation = ''
+        self._left = None
+        self._right = None
+        self._operator = None
+
+    def _equal(self):
+        ...
+
+    def _operatorClicked(self, button: Button):
+
+        displayText = self.display.text()
+        buttonText = button.text()
+
+        self._clear()
+
+        if not isValidNumber(displayText) and self._left is None:
+            return
+
+        if self._left is None:
+            self._left = float(displayText)
+
+        self._operator = buttonText
+        self.equation = f'{self._left} {self._operator} __'

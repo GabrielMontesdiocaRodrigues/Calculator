@@ -14,10 +14,11 @@ class MainWindow(QMainWindow):
         self.cWidget.setLayout(self.mLayout)
 
         # Creating Window
-        self.mLayout.addWidget(Info(''))
+        info = Info('')
+        self.mLayout.addWidget(info)
         display = Display()
         self.mLayout.addWidget(display)
-        self.mLayout.addLayout(ButtonsGrid(display))
+        self.mLayout.addLayout(ButtonsGrid(display, info))
 
         self.setWindowTitle("Calculator")
         self.setCentralWidget(self.cWidget)
