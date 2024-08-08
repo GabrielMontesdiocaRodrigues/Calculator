@@ -1,3 +1,5 @@
+import math
+
 from PySide6.QtWidgets import QLabel, QWidget, QLineEdit, QPushButton, QGridLayout
 from PySide6.QtCore import Qt, Slot
 
@@ -97,9 +99,15 @@ class ButtonsGrid(QGridLayout):
         if buttonText == 'C':
             self._connectButtonClicked(button, self._clear)
 
-        if buttonText in '+-/*':
+        if buttonText in '+-/*^':
             slot = self._makeSlot(self._operatorClicked, button)
             self._connectButtonClicked(button, slot)
+
+        if buttonText == '=':
+            self._connectButtonClicked(button, self._equal)
+
+        if buttonText == '◀':
+            self._connectButtonClicked(button, self.display.backspace)
 
     def _makeSlot(self, function, button):
         @ Slot()
@@ -122,14 +130,34 @@ class ButtonsGrid(QGridLayout):
         self._operator = None
 
     def _equal(self):
-        ...
+        displayText = self.display.text()
+        if not isValidNumber(displayText):
+            return
+
+        self._right = float(displayText)
+        self.equation = f'{self._left} {self._operator} {self._right}'
+        try:
+            if '^' in self.equation:
+                result = math.pow(self._left, self._right)
+            else:
+                result = eval(self.equation)
+        except (ZeroDivisionError, OverflowError):
+            result = 'error'
+
+        self.display.clear()
+        self._right = None
+
+        if result != 'error':
+            self._left = result
+
+        self.info.setText(f'{self.equation} = {result}')
 
     def _operatorClicked(self, button: Button):
 
         displayText = self.display.text()
         buttonText = button.text()
 
-        self._clear()
+        self.display.clear()
 
         if not isValidNumber(displayText) and self._left is None:
             return
