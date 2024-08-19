@@ -1,7 +1,8 @@
 import math
+from PySide6.QtGui import QKeyEvent
 
 from PySide6.QtWidgets import QLabel, QWidget, QLineEdit, QPushButton, QGridLayout
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Qt, Slot, Signal
 
 from utils import isNumOrDot, isEmpty, isValidNumber
 from variables import SMALL_FONT_SIZE, TEXT_MARGIN, MINIMUN_WIDTH, BIG_FONT_SIZE, MEDIUM_FONT_SIZE
@@ -18,6 +19,11 @@ class Info(QLabel):
 
 
 class Display(QLineEdit):
+
+    eqRequested = Signal()
+    dlRequested = Signal()
+    clRequested = Signal()
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.configStyle()
@@ -29,6 +35,33 @@ class Display(QLineEdit):
         self.setMinimumWidth(MINIMUN_WIDTH)
         self.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.setTextMargins(*margins)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        key = event.key()
+        text = event.text()
+
+        KEYS = Qt.Key
+
+        isEnter = key in [KEYS.Key_Enter, KEYS.Key_Return]
+        isDelete = key in [KEYS.Key_Backspace, KEYS.Key_Delete]
+        isEsc = key == KEYS.Key_Escape
+
+        if isEnter or text == '=':
+            self.eqRequested.emit()
+            return event.ignore()
+
+        if isDelete:
+            self.dlRequested.emit()
+            return event.ignore()
+
+        if isEsc or (text.lower() == 'c'):
+            self.clRequested.emit()
+            return event.ignore()
+
+        if isEmpty(text):
+            return event.ignore()
+
+        print(text)
 
 
 class Button(QPushButton):
@@ -77,6 +110,11 @@ class ButtonsGrid(QGridLayout):
         self.info.setText(newEquation)
 
     def make_grid(self):
+
+        self.display.eqRequested.connect(self._equal)
+        self.display.dlRequested.connect(self.display.backspace)
+        self.display.clRequested.connect(self._clear)
+
         for i, row in enumerate(self._grid_mask):
             for j, buttonText in enumerate(row):
 
